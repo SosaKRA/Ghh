@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EL LUX — Премиум посуда</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --pistachio: #C6EBCB;
+      --deep: #042820;
+      --black: #0A0A0A;
+      --gold: #D4AF37;
+      --white: #FFFFFF;
+      --radius: 14px;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: Inter, system-ui, Arial;
+      background: var(--white);
+      color: var(--black);
+      line-height: 1.6;
+    }
+    /* Header / Hero */
+    .hero {
+      background: linear-gradient(180deg, rgba(4, 40, 32, 0.95), rgba(4, 40, 32, 0.95)), url('assets/images/photo_1.jpeg') center/cover no-repeat;
+      padding: 48px 20px;
+      color: var(--white);
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .logo {
+      font-family: Playfair Display, serif;
+      font-size: 30px;
+      letter-spacing: 2px;
+    }
+    .hero-inner {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .hero-left {
+      max-width: 640px;
+    }
+    .hero h1 {
+      margin: 8px 0;
+      font-size: 28px;
+    }
+    .hero p {
+      margin: 0 0 18px;
+      opacity: 0.95;
+    }
+    .btn-primary {
+      background: var(--pistachio);
+      color: var(--deep);
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-block;
+      text-decoration: none;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+    /* Гамбургер меню */
+    .hamburger {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+      z-index: 10;
+      position: absolute;
+      top: 20px;
+      right: 20px;
+    }
+    .hamburger div {
+      width: 30px;
+      height: 4px;
+      background: var(--white);
+      border-radius: 2px;
+    }
+    .menu {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      color: var(--white);
+      z-index: 9;
+      padding-top: 60px;
+      text-align: center;
+    }
+    .menu a {
+      display: block;
+      padding: 20px;
+      color: var(--white);
+      text-decoration: none;
+      font-size: 20px;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+    .menu a:hover {
+      background: var(--deep);
+    }
+    /* Категории с эффектом прокрутки */
+    .carousel-grid {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 6px 6px 18px;
+      scroll-snap-type: x mandatory;
+      transition: transform 0.5s ease; /* плавный эффект для прокрутки */
+    }
+    .cat {
+      min-width: 220px;
+      background: var(--pistachio);
+      border-radius: 12px;
+      padding: 12px;
+      scroll-snap-align: start;
+      flex: 0 0 auto;
+      text-align: center;
+      font-weight: 600;
+      transition: transform 0.3s ease;
+      cursor: pointer;
+    }
+    .cat img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+
+    .cat:hover {
+      transform: scale(1.05);
+    }
+
+    /* Карточки с товарами */
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      padding: 12px 0;
+    }
+    .tile {
+      background: var(--white);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 6px 18px rgba(2, 10, 8, 0.08);
+      border: 1px solid rgba(3, 3, 3, 0.02);
+      transition: transform 0.3s ease;
+    }
+    .tile:hover {
+      transform: scale(1.03);
+    }
+    .tile img {
+      width: 100%;
+      height: 260px;
+      object-fit: cover;
+      display: block;
+    }
+    .tile .label {
+      background: var(--deep);
+      color: var(--pistachio);
+      padding: 14px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    /* WhatsApp CTA */
+    .whatsapp {
+      display: block;
+      margin: 18px 0;
+      background: var(--black);
+      color: var(--pistachio);
+      padding: 14px;
+      border-radius: 12px;
+      text-align: center;
+      text-decoration: none;
+      font-weight: 700;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+    .whatsapp:hover {
+      background: var(--gold);
+      transform: scale(1.05);
+    }
+    /* About */
+    .about {
+      background: #fbf9f6;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 16px 0;
+    }
+    /* Footer */
+    footer {
+      background: var(--black);
+      color: var(--pistachio);
+      padding: 18px;
+      text-align: center;
+      margin-top: 18px;
+      border-top: 4px solid var(--pistachio);
+    }
+    /* Responsive */
+    @media(min-width: 900px) {
+      .hero {
+        padding: 72px 20px;
+      }
+      .hero h1 {
+        font-size: 40px;
+      }
+      .tiles {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="container">
+      <div class="hero-inner">
+        <div class="hero-left">
+          <div class="logo">EL LUX</div>
+          <h1>Премиум посуда и сервировки — эстетика вашего стола</h1>
+          <p>Коллекции сервизов, бокалов и аксессуаров — от проверенных брендов и эксклюзивных партнёров.</p>
+          <a class="btn-primary" href="#new-arrivals" id="open-catalog-btn">ОТКРЫТЬ КАТАЛОГ</a>
+        </div>
+        <div class="hero-right" style="min-width: 200px; text-align: center;">
+          <img src="assets/images/photo_2.jpeg" alt="Промо фото" style="width: 180px; height: 160px; object-fit: cover; border-radius: 12px;" />
+        </div>
+        <!-- Гамбургер меню -->
+        <div class="hamburger" onclick="toggleMenu()">
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="menu" id="menu">
+    <a href="#services">Сервизы</a>
+    <a href="#prices">Цена</a>
+    <a href="#delivery">Доставка</a>
+  </div>
+
+  <main class="container">
+    <section class="carousel" id="catalog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h3 style="margin: 0; font-family: Playfair Display;">Категории</h3>
+        <small style="opacity: 0.7">Листай →</small>
+      </div>
+      <div class="carousel-grid" id="carousel">
+        <div class="cat" onclick="scrollToCategory(this)"><img src="assets/images/photo_1.jpeg" alt="">Сервизы</div>
+        <div class="cat" onclick="scrollToCategory(this)"><img src="assets/images/photo_2.jpeg" alt="">Чайные наборы</div>
+        <div class="cat" onclick="scrollToCategory(this)"><img src="assets/images/photo_3.jpeg" alt="">Бокалы</div>
+        <div class="cat" onclick="scrollToCategory(this)"><img src="assets/images/photo_1.jpeg" alt="">Стекло</div>
+        <div class="cat" onclick="scrollToCategory(this)"><img src="assets/images/photo_2.jpeg" alt="">Аксессуары</div>
+      </div>
+    </section>
+
+    <section id="new-arrivals">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 6px 0;">Новинки</h3>
+        <a href="#all" style="font-size: 13px; color: var(--deep); text-decoration: none; font-weight: 600;">Все товары</a>
+      </div>
+
+      <div class="tiles">
+        <article class="tile">
+          <img src="https://i.ibb.co/ccWS8CYY/IMG-6244.jpg" alt="Сервиз №1">
+          <div class="label">Сервиз "Амелия" — 24 предмета</div>
+        </article>
+        <article class="tile">
+          <img src="https://i.ibb.co/ccWS8CYY/IMG-6244.jpg" alt="Кружки">
+          <div class="label">Чайный набор "Verde"</div>
+        </article>
+        <article class="tile">
+          <img src="https://i.ibb.co/ccWS8CYY/IMG-6244.jpg" alt="Бокалы">
+          <div class="label">Бокалы для вина — набор 6</div>
+        </article>
+      </div>
+
+      <a class="whatsapp" href="https://wa.me/7XXXXXXXXXX?text=Здравствуйте, хочу узнать о товаре El Lux" target="_blank" rel="noopener">НАПИСАТЬ В WHATSAPP</a>
+
+      <div class="about">
+        <h4 style="margin: 0 0 8px; font-family: Playfair Display;">О EL LUX</h4>
+        <p style="margin: 0;">El Lux — коллекционная посуда и сервизы для красивого стола. Мы подбираем бренды с акцентом на качество и эстетику, чтобы каждая подача выглядела как в ресторане.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    © EL LUX — Контакты: +7 (XXX) XXX-XX-XX • Instagram @ellux
+  </footer>
+
+  <script>
+    // Функция для открытия и закрытия меню
+    function toggleMenu() {
+      const menu = document.getElementById('menu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+
+    // Плавная прокрутка к новинкам
+    document.getElementById('open-catalog-btn').addEventListener('click', function(event) {
+      event.preventDefault();
+      document.getElementById('new-arrivals').scrollIntoView({
+        behavior: 'smooth'
+      });
+    });
+
+    // Перемещение категории в центр экрана
+    function scrollToCategory(catElement) {
+      const carousel = document.getElementById('carousel');
+      const catOffset = catElement.offsetLeft; // Получаем смещение элемента
+      const carouselWidth = carousel.offsetWidth; // Ширина контейнера
+      const catWidth = catElement.offsetWidth; // Ширина самого элемента
+
+      // Вычисляем, сколько нужно прокрутить
+      const scrollTo = catOffset - (carouselWidth / 2 - catWidth / 2);
+
+      carousel.scrollTo({
+        left: scrollTo,
+        behavior: 'smooth'
+      });
+    }
+  </script>
+</body>
+</html>
