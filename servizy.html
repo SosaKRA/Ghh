@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Mama kapacя — NPC + dialogues</title>
+<style>
+  :root{
+    --ui-bg: rgba(16,20,18,.34);
+    --ui-br: rgba(255,255,255,.12);
+    --ui-tx: #eef4df;
+    --dlg-bg: rgba(18,14,12,.88);
+    --dlg-br: rgba(233,209,154,.18);
+    --dlg-ac: #e6d3a0;
+  }
+  html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#151b14;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    touch-action:none;
+  }
+  canvas{
+    display:block;
+    width:100vw;
+    height:100vh;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  .hud{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+  }
+  .title{
+    position:absolute;
+    top:12px;
+    left:14px;
+    color:var(--ui-tx);
+    font-weight:700;
+    font-size:16px;
+    text-shadow:0 2px 10px rgba(0,0,0,.72);
+    opacity:.95;
+    letter-spacing:.3px;
+  }
+  .sub{
+    position:absolute;
+    top:34px;
+    left:14px;
+    max-width:74vw;
+    color:rgba(240,244,228,.78);
+    font-size:12px;
+    line-height:1.26;
+    text-shadow:0 1px 7px rgba(0,0,0,.72);
+  }
+  .mapLabel{
+    position:absolute;
+    right:14px;
+    top:12px;
+    color:rgba(245,245,236,.88);
+    font-size:12px;
+    padding:7px 11px;
+    border-radius:999px;
+    background:var(--ui-bg);
+    border:1px solid var(--ui-br);
+    backdrop-filter:blur(5px);
+    -webkit-backdrop-filter:blur(5px);
+    text-shadow:0 1px 4px rgba(0,0,0,.7);
+  }
+  .controlsTip{
+    position:absolute;
+    right:12px;
+    bottom:12px;
+    font-size:11px;
+    color:rgba(236,242,230,.76);
+    background:var(--ui-bg);
+    border:1px solid var(--ui-br);
+    padding:7px 9px;
+    border-radius:12px;
+    backdrop-filter:blur(4px);
+    -webkit-backdrop-filter:blur(4px);
+    text-shadow:0 1px 5px rgba(0,0,0,.7);
+  }
+
+  #joystick{
+    position:fixed;
+    left:18px;
+    bottom:18px;
+    width:138px;
+    height:138px;
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255,255,255,.06) 0 34%, rgba(255,255,255,.015) 35% 100%),
+      rgba(23,28,24,.30);
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow: inset 0 0 18px rgba(255,255,255,.03), 0 10px 30px rgba(0,0,0,.28);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    pointer-events:auto;
+    touch-action:none;
+  }
+  #joyDeadzone{
+    position:absolute;
+    inset:27px;
+    border-radius:50%;
+    border:1px dashed rgba(255,255,255,.08);
+  }
+  #stick{
+    position:absolute;
+    width:64px;
+    height:64px;
+    left:37px;
+    top:37px;
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 35% 30%, rgba(255,255,255,.52), rgba(255,255,255,.18) 45%, rgba(0,0,0,.1) 100%),
+      rgba(255,255,255,.18);
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow: 0 5px 18px rgba(0,0,0,.28);
+  }
+  #actionBtn{
+    position:fixed;
+    right:18px;
+    bottom:24px;
+    min-width:110px;
+    height:54px;
+    padding:0 18px;
+    border:none;
+    border-radius:18px;
+    font-weight:700;
+    font-size:16px;
+    color:#f6f2dd;
+    background:linear-gradient(180deg, rgba(104,71,38,.92), rgba(74,48,25,.95));
+    border:1px solid rgba(255,222,158,.18);
+    box-shadow:0 10px 28px rgba(0,0,0,.33), inset 0 1px 0 rgba(255,255,255,.08);
+    display:none;
+    pointer-events:auto;
+  }
+  #actionBtn.show{ display:block; }
+
+  #dialoguePanel{
+    position:fixed;
+    left:10px;
+    right:10px;
+    bottom:10px;
+    min-height:168px;
+    max-height:46vh;
+    padding:14px 14px 12px;
+    border-radius:18px;
+    border:1px solid var(--dlg-br);
+    background:
+      linear-gradient(180deg, rgba(80,54,30,.22), rgba(20,14,12,.15)),
+      var(--dlg-bg);
+    box-shadow: 0 14px 44px rgba(0,0,0,.44), inset 0 1px 0 rgba(255,255,255,.05);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display:none;
+    pointer-events:auto;
+    overflow:hidden;
+  }
+  #dialoguePanel.show{ display:block; }
+  .dialogueHeader{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:8px;
+  }
+  #dialogueName{
+    color:#f4e5bf;
+    font-weight:800;
+    font-size:15px;
+    letter-spacing:.25px;
+    text-shadow:0 1px 4px rgba(0,0,0,.7);
+  }
+  #dialogueHint{
+    color:rgba(235,222,194,.58);
+    font-size:11px;
+  }
+  #dialogueText{
+    color:#f1eee5;
+    font-size:14px;
+    line-height:1.42;
+    margin:0 0 12px;
+    white-space:pre-wrap;
+    text-shadow:0 1px 3px rgba(0,0,0,.55);
+  }
+  #dialogueOptions{
+    display:grid;
+    gap:8px;
+    max-height:26vh;
+    overflow:auto;
+    padding-right:2px;
+  }
+  .dlgOpt{
+    text-align:left;
+    border:none;
+    color:#f7f2e8;
+    font-size:13px;
+    line-height:1.32;
+    padding:10px 12px;
+    border-radius:12px;
+    background:linear-gradient(180deg, rgba(88,62,40,.92), rgba(62,41,26,.95));
+    border:1px solid rgba(247,220,164,.12);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .dlgOpt:active{
+    transform:translateY(1px);
+  }
+
+  @media (min-width: 900px){
+    .title{ font-size:18px; }
+    .sub{ font-size:13px; }
+    #joystick{ left:24px; bottom:24px; }
+    #actionBtn{ right:24px; bottom:24px; }
+    #dialoguePanel{
+      left:20px;
+      right:20px;
+      bottom:20px;
+      max-width:860px;
+      margin:0 auto;
+    }
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div class="hud">
+  <div class="title">Mama kapacя</div>
+  <div class="sub">В таверне появились три статичных НПС, диалоги с вариантами ответов, изгнание из пивнухи и реплика зеваки снаружи.</div>
+  <div class="mapLabel" id="mapLabel">Поляна</div>
+  <div class="controlsTip">ПК: WASD / стрелки · E / Enter — взаимодействие</div>
+</div>
+<div id="joystick" aria-label="джойстик">
+  <div id="joyDeadzone"></div>
+  <div id="stick"></div>
+</div>
+<button id="actionBtn" type="button">Войти</button>
+<div id="dialoguePanel" aria-live="polite">
+  <div class="dialogueHeader">
+    <div id="dialogueName">Имя</div>
+    <div id="dialogueHint">Диалог</div>
+  </div>
+  <div id="dialogueText"></div>
+  <div id="dialogueOptions"></div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d', { alpha:false });
+  const joystick = document.getElementById('joystick');
+  const stick = document.getElementById('stick');
+  const actionBtn = document.getElementById('actionBtn');
+  const mapLabel = document.getElementById('mapLabel');
+  const dialoguePanel = document.getElementById('dialoguePanel');
+  const dialogueNameEl = document.getElementById('dialogueName');
+  const dialogueTextEl = document.getElementById('dialogueText');
+  const dialogueOptionsEl = document.getElementById('dialogueOptions');
+
+  let vw = 0, vh = 0, dpr = 1;
+  function resize(){
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    vw = window.innerWidth;
+    vh = window.innerHeight;
+    canvas.width = Math.round(vw * dpr);
+    canvas.height = Math.round(vh * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function mulberry32(seed){
+    return function(){
+      let t = seed += 0x6D2B79F5;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  const rand = mulberry32(4872113);
+  const rnd = (a,b) => a + (b-a) * rand();
+  const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+  const lerp = (a,b,t) => a + (b-a) * t;
+
+  function rr(g, x, y, w, h, r){
+    r = Math.min(r, w*0.5, h*0.5);
+    g.beginPath();
+    g.moveTo(x+r, y);
+    g.arcTo(x+w, y, x+w, y+h, r);
+    g.arcTo(x+w, y+h, x, y+h, r);
+    g.arcTo(x, y+h, x, y, r);
+    g.arcTo(x, y, x+w, y, r);
+    g.closePath();
+  }
+
+  function drawTree(g, x, y, s){
+    g.save();
+    g.translate(x,y);
+    g.fillStyle = 'rgba(0,0,0,.17)';
+    g.beginPath(); g.ellipse(0, 22*s, 46*s, 16*s, 0, 0, Math.PI*2); g.fill();
+    g.fillStyle = '#5a3a24';
+    g.fillRect(-8*s, -30*s, 16*s, 58*s);
+    g.fillStyle = '#71482c';
+    g.fillRect(-4*s, -30*s, 4*s, 58*s);
+    const bunches = [[-22,-18,.92],[0,-28,1.03],[24,-14,.9],[-6,-2,1.08],[16,10,.78],[-26,7,.74]];
+    const leafColors = ['#244b21','#32642d','#3d7639','#477f42'];
+    for(let i=0;i<bunches.length;i++){
+      const b = bunches[i];
+      g.fillStyle = leafColors[i % leafColors.length];
+      g.beginPath(); g.arc(b[0]*s, b[1]*s, 42*s*b[2], 0, Math.PI*2); g.fill();
+    }
+    g.fillStyle = 'rgba(255,255,190,.06)';
+    g.beginPath(); g.arc(-10*s, -28*s, 30*s, 0, Math.PI*2); g.fill();
+    g.restore();
+  }
+
+  function drawBush(g, x, y, s, berries=true){
+    g.save();
+    g.translate(x,y);
+    g.fillStyle = 'rgba(0,0,0,.12)';
+    g.beginPath(); g.ellipse(0, 13*s, 28*s, 10*s, 0, 0, Math.PI*2); g.fill();
+    const parts = [[-18,0,18],[0,-6,22],[18,0,18],[-7,8,16],[8,8,15]];
+    const cols = ['#2c5d29','#367333','#3f7d3b'];
+    parts.forEach((p,i)=>{
+      g.fillStyle = cols[i%cols.length];
+      g.beginPath(); g.arc(p[0]*s,p[1]*s,p[2]*s,0,Math.PI*2); g.fill();
+    });
+    if(berries){
+      g.fillStyle = '#a1162f';
+      [[-8,2],[3,-2],[14,6],[-16,7],[8,10]].forEach(b=>{
+        g.beginPath(); g.arc(b[0]*s,b[1]*s,3.1*s,0,Math.PI*2); g.fill();
+      });
+    }
+    g.restore();
+  }
+
+  function drawRock(g, x, y, s){
+    g.save();
+    g.translate(x,y);
+    g.fillStyle = 'rgba(0,0,0,.14)';
+    g.beginPath(); g.ellipse(0, 20*s, 40*s, 14*s, 0, 0, Math.PI*2); g.fill();
+    g.fillStyle = '#616563';
+    g.beginPath();
+    g.moveTo(-36*s, 8*s); g.lineTo(-22*s, -20*s); g.lineTo(8*s, -28*s); g.lineTo(34*s, -12*s);
+    g.lineTo(38*s, 14*s); g.lineTo(10*s, 28*s); g.lineTo(-26*s, 22*s); g.closePath();
+    g.fill();
+    g.fillStyle = '#7b7f7c';
+    g.beginPath();
+    g.moveTo(-14*s,-10*s); g.lineTo(5*s,-18*s); g.lineTo(20*s,-10*s); g.lineTo(6*s,0); g.closePath();
+    g.fill();
+    g.restore();
+  }
+
+  function drawStump(g, x, y, s){
+    g.save();
+    g.translate(x,y);
+    g.fillStyle = 'rgba(0,0,0,.14)';
+    g.beginPath(); g.ellipse(0,12*s,22*s,8*s,0,0,Math.PI*2); g.fill();
+    g.fillStyle = '#6f4b2b';
+    g.fillRect(-18*s,-10*s,36*s,22*s);
+    g.fillStyle = '#9a7446';
+    g.beginPath(); g.ellipse(0,-10*s,18*s,9*s,0,0,Math.PI*2); g.fill();
+    g.strokeStyle = '#75552f';
+    g.lineWidth = 2*s;
+    g.beginPath(); g.arc(0,-10*s,8*s,0,Math.PI*2); g.stroke();
+    g.beginPath(); g.arc(0,-10*s,4*s,0,Math.PI*2); g.stroke();
+    g.restore();
+  }
+
+  function drawTavernExterior(g, x, y, s){
+    g.save();
+    g.translate(x,y);
+    g.fillStyle = 'rgba(0,0,0,.22)';
+    g.beginPath(); g.ellipse(0, 84*s, 136*s, 26*s, 0, 0, Math.PI*2); g.fill();
+
+    g.fillStyle = '#6b4427';
+    rr(g, -98*s, -8*s, 196*s, 106*s, 10*s); g.fill();
+    g.fillStyle = '#7b5030';
+    for(let i=0;i<6;i++){
+      rr(g, -94*s, (i*16 - 4)*s, 188*s, 10*s, 4*s); g.fill();
+    }
+
+    g.fillStyle = '#4b2f1a';
+    rr(g, -110*s, -48*s, 220*s, 54*s, 8*s); g.fill();
+    g.fillStyle = '#6b3d1f';
+    for(let i=0;i<7;i++){
+      g.beginPath();
+      g.moveTo((-110 + i*34)*s, 6*s);
+      g.lineTo((-93 + i*34)*s, -48*s);
+      g.lineTo((-76 + i*34)*s, 6*s);
+      g.closePath();
+      g.fill();
+    }
+
+    g.fillStyle = '#4c2d17';
+    rr(g, -22*s, 28*s, 44*s, 70*s, 6*s); g.fill();
+    g.fillStyle = '#6f4322';
+    rr(g, -18*s, 32*s, 36*s, 66*s, 5*s); g.fill();
+    g.fillStyle = '#b78e55';
+    g.beginPath(); g.arc(10*s, 64*s, 3*s, 0, Math.PI*2); g.fill();
+
+    g.fillStyle = '#2c2e33';
+    rr(g, -76*s, 20*s, 34*s, 26*s, 5*s); g.fill();
+    rr(g, 42*s, 20*s, 34*s, 26*s, 5*s); g.fill();
+    g.fillStyle = 'rgba(158,205,235,.16)';
+    rr(g, -72*s, 24*s, 26*s, 18*s, 4*s); g.fill();
+    rr(g, 46*s, 24*s, 26*s, 18*s, 4*s); g.fill();
+
+    g.fillStyle = '#6b4e2e';
+    rr(g, -70*s, -30*s, 140*s, 18*s, 6*s); g.fill();
+    g.strokeStyle = '#e6dbbe';
+    g.lineWidth = 2*s;
+    g.strokeRect(-64*s, -26*s, 128*s, 10*s);
+    g.fillStyle = '#efe1b6';
+    g.font = `${12*s}px serif`;
+    g.textAlign = 'center';
+    g.fillText('Кружка и Кость', 0, -18*s);
+
+    g.fillStyle = '#7b5e3c';
+    g.fillRect(-30*s, 98*s, 60*s, 8*s);
+    g.restore();
+  }
+
+  function drawBarCounter(g, x, y, w, h){
+    g.save();
+    g.translate(x,y);
+    g.fillStyle = 'rgba(0,0,0,.18)';
+    g.beginPath(); g.ellipse(0, h*0.55, w*0.5, 11, 0, 0, Math.PI*2); g.fill();
+    g.fillStyle = '#603919';
+    rr(g, -w/2, -h/2, w, h, 9); g.fill();
+    g.fillStyle = '#7a4b23';
+    rr(g, -w/2+6, -h/2+6, w-12, h*0.34, 8); g.fill();
+    for(let i=-w/2+14; i<w/2-6; i+=20){
+      g.fillStyle = 'rgba(255,255,255,.05)';
+      g.fillRect(i, -h/2+10, 3, h-20);
+    }
+    g.restore();
+  }
+
+  function drawTable(g, x, y, s){
+    g.save();
+    g.translate(x,y);
+    g.fillStyle='rgba(0,0,0,.16)';
+    g.beginPath(); g.ellipse(0, 22*s, 32*s, 10*s, 0, 0, Math.PI*2); g.fill();
+    g.fillStyle='#73451f';
+    rr(g, -24*s, -5*s, 48*s, 16*s, 6*s); g.fill();
+    g.fillRect(-18*s, 7*s, 4*s, 18*s);
+    g.fillRect(14*s, 7*s, 4*s, 18*s);
+    g.fillStyle='#8c5d30';
+    rr(g, -20*s, -2*s, 40*s, 7*s, 3*s); g.fill();
+    g.restore();
+  }
+
+  function drawChair(g, x, y, s, facing){
+    g.save();
+    g.translate(x,y);
+    g.fillStyle='rgba(0,0,0,.12)';
+    g.beginPath(); g.ellipse(0, 14*s, 16*s, 6*s, 0, 0, Math.PI*2); g.fill();
+    g.fillStyle='#6d4322';
+    rr(g, -10*s, 0, 20*s, 8*s, 3*s); g.fill();
+    if(facing === 'up') g.fillRect(-9*s, -12*s, 18*s, 12*s);
+    if(facing === 'left') g.fillRect(-10*s, -10*s, 4*s, 16*s);
+    if(facing === 'right') g.fillRect(6*s, -10*s, 4*s, 16*s);
+    g.fillRect(-8*s, 8*s, 3*s, 10*s);
+    g.fillRect(5*s, 8*s, 3*s, 10*s);
+    g.restore();
+  }
+
+  function drawFireplace(g, x, y, s){
+    g.save();
+    g.translate(x,y);
+    g.fillStyle='rgba(0,0,0,.2)';
+    g.beginPath(); g.ellipse(0, 18*s, 40*s, 12*s, 0, 0, Math.PI*2); g.fill();
+    g.fillStyle='#73706d';
+    rr(g, -36*s, -34*s, 72*s, 56*s, 8*s); g.fill();
+    g.fillStyle='#56514f';
+    rr(g, -24*s, -4*s, 48*s, 24*s, 5*s); g.fill();
+    const flame = g.createRadialGradient(0,6*s,2,0,6*s,18*s);
+    flame.addColorStop(0,'rgba(255,235,166,.95)');
+    flame.addColorStop(.45,'rgba(255,150,61,.72)');
+    flame.addColorStop(1,'rgba(255,120,20,0)');
+    g.fillStyle = flame;
+    g.beginPath(); g.arc(0, 8*s, 18*s, 0, Math.PI*2); g.fill();
+    g.restore();
+  }
+
+  function drawBarrel(g, x, y, s){
+    g.save();
+    g.translate(x,y);
+    g.fillStyle='rgba(0,0,0,.14)';
+    g.beginPath(); g.ellipse(0, 18*s, 18*s, 6*s, 0, 0, Math.PI*2); g.fill();
+    g.fillStyle='#6e4626';
+    rr(g,-14*s,-12*s,28*s,30*s,6*s); g.fill();
+    g.fillStyle='#472913';
+    g.fillRect(-14*s,-6*s,28*s,3*s);
+    g.fillRect(-14*s,7*s,28*s,3*s);
+    g.restore();
+  }
+
+  function drawTrophy(g, x, y, s){
+    g.save();
+    g.translate(x,y);
+    g.strokeStyle = '#917348';
+    g.lineWidth = 3*s;
+    g.beginPath(); g.moveTo(-14*s,0); g.lineTo(-4*s,-12*s); g.lineTo(-1*s,-4*s); g.stroke();
+    g.beginPath(); g.moveTo(14*s,0); g.lineTo(4*s,-12*s); g.lineTo(1*s,-4*s); g.stroke();
+    g.fillStyle = '#7e694d';
+    g.beginPath(); g.arc(0, 2*s, 6*s, 0, Math.PI*2); g.fill();
+    g.restore();
+  }
+
+  const CELL = 96;
+  function createCharacterSheet(){
+    const sheet = document.createElement('canvas');
+    sheet.width = CELL * 4;
+    sheet.height = CELL * 4;
+    const g = sheet.getContext('2d');
+    g.imageSmoothingEnabled = true;
+    for(let dir=0; dir<4; dir++){
+      for(let frame=0; frame<4; frame++){
+        drawCharacterCell(g, frame * CELL, dir * CELL, dir, frame);
+      }
+    }
+    return sheet;
+  }
+
+  function drawCharacterCell(g, sx, sy, dir, frame){
+    const cx = sx + CELL/2;
+    const baseY = sy + 68;
+    const movingPose = frame === 1 || frame === 3;
+    const stepDir = frame === 1 ? 1 : frame === 3 ? -1 : 0;
+    const idleBob = frame === 2 ? 1.2 : 0;
+
+    g.save();
+    g.translate(cx, baseY + idleBob);
+    g.fillStyle = 'rgba(0,0,0,.18)';
+    g.beginPath(); g.ellipse(0, 18, 15, 5, 0, 0, Math.PI*2); g.fill();
+
+    const legSwing = movingPose ? stepDir * 3.8 : 0;
+    const armSwing = movingPose ? -stepDir * 3.5 : 0;
+
+    if(dir === 0 || dir === 1){
+      g.lineCap = 'round';
+      g.strokeStyle = '#a69b91';
+      g.lineWidth = 4;
+      g.beginPath(); g.moveTo(-5, 8); g.lineTo(-6, 24 + legSwing); g.stroke();
+      g.beginPath(); g.moveTo( 5, 8); g.lineTo( 6, 24 - legSwing); g.stroke();
+      g.fillStyle = '#3a3029';
+      rr(g, -11, 24 + legSwing, 9, 5, 2); g.fill();
+      rr(g, 2, 24 - legSwing, 9, 5, 2); g.fill();
+
+      g.save();
+      g.rotate(movingPose ? stepDir * 0.05 : 0);
+      g.fillStyle = dir === 1 ? '#b8b4ad' : '#d2cec7';
+      g.beginPath();
+      g.moveTo(-12,-1); g.lineTo(12,-1); g.lineTo(17,21); g.lineTo(10,28); g.lineTo(4,22); g.lineTo(0,28); g.lineTo(-6,22); g.lineTo(-14,28); g.lineTo(-17,21);
+      g.closePath(); g.fill();
+      g.fillStyle = '#9c978f';
+      g.beginPath(); g.moveTo(-12,-1); g.lineTo(0,2); g.lineTo(4,22); g.lineTo(0,28); g.lineTo(-6,22); g.lineTo(-14,28); g.lineTo(-17,21); g.closePath(); g.fill();
+      g.restore();
+
+      g.strokeStyle = '#d8cec6';
+      g.lineWidth = 4;
+      g.beginPath(); g.moveTo(-9,3); g.lineTo(-16, 11 + armSwing); g.stroke();
+      g.beginPath(); g.moveTo( 9,3); g.lineTo( 16, 11 - armSwing); g.stroke();
+
+      g.fillStyle = '#666b72';
+      g.beginPath();
+      g.moveTo(-13,-3); g.quadraticCurveTo(0,-10,13,-3); g.lineTo(10,9); g.quadraticCurveTo(0,6,-10,9); g.closePath();
+      g.fill();
+
+      g.fillStyle = '#8b7767';
+      g.beginPath();
+      g.moveTo(-12,-17); g.quadraticCurveTo(-16,-8,-14,4); g.quadraticCurveTo(-9,13,0,15); g.quadraticCurveTo(11,13,14,3); g.quadraticCurveTo(16,-9,12,-17); g.quadraticCurveTo(0,-22,-12,-17);
+      g.fill();
+
+      g.fillStyle = '#ead7cf';
+      g.beginPath(); g.arc(0,-5,11.3,0,Math.PI*2); g.fill();
+      g.fillStyle = '#7c6b5d';
+      g.beginPath(); g.ellipse(-7,-4,3.2,9,0.2,0,Math.PI*2); g.fill();
+      g.beginPath(); g.ellipse(7,-4,3.2,9,-0.2,0,Math.PI*2); g.fill();
+
+      if(dir === 1){
+        g.fillStyle = '#6d5f53';
+        g.beginPath(); g.moveTo(-10,-7); g.quadraticCurveTo(0,-15,10,-7); g.lineTo(10,4); g.quadraticCurveTo(0,10,-10,4); g.closePath(); g.fill();
+      } else {
+        g.fillStyle = '#ffffff';
+        g.beginPath(); g.ellipse(-4.3,-6,2.5,3.4,0,0,Math.PI*2); g.fill();
+        g.beginPath(); g.ellipse(4.3,-6,2.5,3.4,0,0,Math.PI*2); g.fill();
+        g.fillStyle = '#405063';
+        g.beginPath(); g.arc(-4.3,-5.5,1.2,0,Math.PI*2); g.fill();
+        g.beginPath(); g.arc(4.3,-5.5,1.2,0,Math.PI*2); g.fill();
+        g.strokeStyle = '#6c5c5c'; g.lineWidth = 1.1;
+        g.beginPath(); g.moveTo(-8,-10); g.quadraticCurveTo(-4.3,-11,-1.4,-9.1); g.stroke();
+        g.beginPath(); g.moveTo(1.4,-9.1); g.quadraticCurveTo(4.3,-11,8,-10); g.stroke();
+        g.strokeStyle = '#8d6f71';
+        g.beginPath(); g.moveTo(-3.6,1.1); g.quadraticCurveTo(0,3.4,3.6,1.1); g.stroke();
+      }
+      g.fillStyle = 'rgba(188,110,118,.18)';
+      g.beginPath(); g.arc(-6,-2,1.5,0,Math.PI*2); g.fill();
+      g.beginPath(); g.arc(6,-2,1.5,0,Math.PI*2); g.fill();
+    } else {
+      const faceRight = dir === 3;
+      const side = faceRight ? 1 : -1;
+      g.lineCap = 'round';
+      g.strokeStyle = '#a79d92';
+      g.lineWidth = 4;
+      g.beginPath(); g.moveTo(-4,8); g.lineTo(-5,23 - legSwing); g.stroke();
+      g.beginPath(); g.moveTo(4,8); g.lineTo(5,23 + legSwing); g.stroke();
+      g.fillStyle = '#3a3029';
+      rr(g, -10, 23 - legSwing, 8, 5, 2); g.fill();
+      rr(g, 2, 23 + legSwing, 8, 5, 2); g.fill();
+
+      g.save();
+      g.scale(side, 1);
+      g.strokeStyle = '#d7cdc4';
+      g.lineWidth = 4;
+      g.beginPath(); g.moveTo(-2,3); g.lineTo(-12,10 + armSwing); g.stroke();
+      g.beginPath(); g.moveTo(8,3); g.lineTo(15,13 - armSwing*0.7); g.stroke();
+
+      g.fillStyle = '#676b73';
+      g.beginPath();
+      g.moveTo(-10,-4); g.quadraticCurveTo(4,-11,14,-3); g.lineTo(10,9); g.quadraticCurveTo(1,6,-8,8); g.closePath(); g.fill();
+
+      g.fillStyle = '#d0ccc5';
+      g.beginPath();
+      g.moveTo(-10,-1); g.quadraticCurveTo(1,-6,12,-1); g.lineTo(17,21); g.lineTo(7,28); g.lineTo(0,24); g.lineTo(-8,28); g.lineTo(-14,21); g.closePath(); g.fill();
+      g.fillStyle = '#9a958d';
+      g.beginPath(); g.moveTo(-10,-1); g.lineTo(-2,1); g.lineTo(-8,28); g.lineTo(-14,21); g.closePath(); g.fill();
+
+      g.fillStyle = '#8b7767';
+      g.beginPath();
+      g.moveTo(-6,-17); g.quadraticCurveTo(-11,-6,-9,3); g.quadraticCurveTo(-5,12,3,14); g.quadraticCurveTo(12,11,14,2); g.quadraticCurveTo(15,-8,8,-16); g.quadraticCurveTo(0,-21,-6,-17); g.fill();
+
+      g.fillStyle = '#ead7cf';
+      g.beginPath(); g.moveTo(-2,-16); g.quadraticCurveTo(7,-18,12,-9); g.quadraticCurveTo(13,1,6,7); g.quadraticCurveTo(0,12,-6,7); g.quadraticCurveTo(-9,1,-8,-8); g.quadraticCurveTo(-6,-14,-2,-16); g.fill();
+
+      g.fillStyle = '#7c6b5d';
+      g.beginPath(); g.ellipse(-5,-5,2.7,8.4,0.15,0,Math.PI*2); g.fill();
+      g.fillStyle = '#ffffff';
+      g.beginPath(); g.ellipse(4.2,-5.5,2.6,3.2,0,0,Math.PI*2); g.fill();
+      g.fillStyle = '#425468';
+      g.beginPath(); g.arc(4.2,-5.3,1.18,0,Math.PI*2); g.fill();
+      g.strokeStyle = '#6c5c5c'; g.lineWidth = 1.1;
+      g.beginPath(); g.moveTo(0,-9.5); g.quadraticCurveTo(4,-10.8,8,-8.8); g.stroke();
+      g.strokeStyle = '#8d6f71';
+      g.beginPath(); g.moveTo(6.4,-1.2); g.quadraticCurveTo(9.2,0.3,6.2,1.8); g.stroke();
+      g.fillStyle = 'rgba(188,110,118,.18)';
+      g.beginPath(); g.arc(3,-2,1.4,0,Math.PI*2); g.fill();
+      g.fillStyle = '#d4c0b5';
+      g.beginPath(); g.moveTo(8,-3); g.lineTo(11,-1.5); g.lineTo(8,0); g.closePath(); g.fill();
+      g.restore();
+    }
+    g.restore();
+  }
+
+  function createNpcSprites(){
+    const sprites = Object.create(null);
+    sprites.barman = createNpcSprite({
+      coat:'#6c4022', coat2:'#4d2c18', apron:'#b79a73', hair:'#5d544e', skin:'#dcc5b3', eye:'#223141', nose:'#d27f67', stocky:true, hat:false, mug:true, beard:false
+    });
+    sprites.drunk = createNpcSprite({
+      coat:'#5c4638', coat2:'#433025', apron:null, hair:'#6a5746', skin:'#dfc7b4', eye:'#223141', nose:'#b94d4d', stocky:false, hat:false, mug:true, beard:true, slouch:true
+    });
+    sprites.trader = createNpcSprite({
+      coat:'#3c3f4c', coat2:'#282b35', apron:null, hair:'#4f433a', skin:'#d9c2af', eye:'#1d2732', nose:'#a86658', stocky:false, hat:true, mug:false, beard:false
+    });
+    sprites.mocker = createNpcSprite({
+      coat:'#56704d', coat2:'#384b33', apron:null, hair:'#645746', skin:'#deccb8', eye:'#223141', nose:'#a96a58', stocky:false, hat:false, mug:false, beard:false, scarf:'#84703e'
+    });
+    return sprites;
+  }
+
+  function createNpcSprite(cfg){
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 64;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = true;
+    g.save();
+    g.translate(32, 44 + (cfg.slouch ? 2 : 0));
+
+    g.fillStyle = 'rgba(0,0,0,.18)';
+    g.beginPath(); g.ellipse(0, 13, 15, 5, 0, 0, Math.PI*2); g.fill();
+
+    g.strokeStyle = '#ac9e92';
+    g.lineWidth = 3.7;
+    g.lineCap = 'round';
+    g.beginPath(); g.moveTo(-4, 5); g.lineTo(-5, 20); g.stroke();
+    g.beginPath(); g.moveTo(4, 5); g.lineTo(5, 20); g.stroke();
+    g.fillStyle = '#382d27';
+    rr(g, -10, 20, 8, 5, 2); g.fill();
+    rr(g, 2, 20, 8, 5, 2); g.fill();
+
+    if(cfg.slouch) g.rotate(-0.05);
+    g.fillStyle = cfg.coat;
+    g.beginPath();
+    g.moveTo(-12,-1); g.lineTo(12,-1); g.lineTo(17,18); g.lineTo(10,24); g.lineTo(4,20); g.lineTo(0,24); g.lineTo(-7,20); g.lineTo(-15,24); g.lineTo(-17,18);
+    g.closePath(); g.fill();
+    g.fillStyle = cfg.coat2;
+    g.beginPath(); g.moveTo(-12,-1); g.lineTo(0,1); g.lineTo(0,24); g.lineTo(-7,20); g.lineTo(-15,24); g.lineTo(-17,18); g.closePath(); g.fill();
+
+    if(cfg.apron){
+      g.fillStyle = cfg.apron;
+      rr(g, -7, 2, 14, 17, 3); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.08)';
+      g.fillRect(-3, 4, 2, 12);
+    }
+    if(cfg.scarf){
+      g.fillStyle = cfg.scarf;
+      rr(g, -10, -2, 20, 5, 2); g.fill();
+    }
+
+    g.strokeStyle = '#d8d0c7';
+    g.lineWidth = 3.6;
+    g.beginPath(); g.moveTo(-9, 2); g.lineTo(-15, 9); g.stroke();
+    g.beginPath(); g.moveTo(9, 2); g.lineTo(cfg.mug ? 14 : 15, cfg.mug ? 7 : 9); g.stroke();
+
+    g.fillStyle = cfg.skin;
+    g.beginPath(); g.arc(0, -8, 11, 0, Math.PI*2); g.fill();
+
+    g.fillStyle = cfg.hair;
+    g.beginPath(); g.moveTo(-12,-11); g.quadraticCurveTo(0,-22,12,-11); g.lineTo(10,-1); g.quadraticCurveTo(0,-4,-10,-1); g.closePath(); g.fill();
+    g.beginPath(); g.ellipse(-7,-7,3,8,0.2,0,Math.PI*2); g.fill();
+    g.beginPath(); g.ellipse(7,-7,3,8,-0.2,0,Math.PI*2); g.fill();
+    if(cfg.hat){
+      g.fillStyle = '#3c4031';
+      g.beginPath(); g.moveTo(-12,-11); g.quadraticCurveTo(0,-24,12,-11); g.lineTo(8,-16); g.lineTo(-8,-16); g.closePath(); g.fill();
+      g.fillRect(-13,-10,26,3);
+    }
+    if(cfg.beard){
+      g.fillStyle = '#6a584a';
+      g.beginPath(); g.moveTo(-6,-1); g.quadraticCurveTo(0,8,6,-1); g.lineTo(3,7); g.lineTo(-3,7); g.closePath(); g.fill();
+    }
+
+    g.fillStyle = '#ffffff';
+    g.beginPath(); g.ellipse(-4,-8.5,2.3,3,0,0,Math.PI*2); g.fill();
+    g.beginPath(); g.ellipse(4,-8.5,2.3,3,0,0,Math.PI*2); g.fill();
+    g.fillStyle = cfg.eye;
+    g.beginPath(); g.arc(-4,-8.2,1.05,0,Math.PI*2); g.fill();
+    g.beginPath(); g.arc(4,-8.2,1.05,0,Math.PI*2); g.fill();
+    g.strokeStyle = '#695656'; g.lineWidth = 1.05;
+    g.beginPath(); g.moveTo(-7.6,-12); g.quadraticCurveTo(-4,-13,-1.2,-11.3); g.stroke();
+    g.beginPath(); g.moveTo(1.2,-11.3); g.quadraticCurveTo(4,-13,7.6,-12); g.stroke();
+    g.fillStyle = cfg.nose;
+    g.beginPath(); g.arc(0,-3.1,1.65,0,Math.PI*2); g.fill();
+    g.strokeStyle = '#8a6c6d'; g.lineWidth = 1.05;
+    g.beginPath(); g.moveTo(-3.4, 1.5); g.quadraticCurveTo(0,3.1,3.4,1.5); g.stroke();
+    g.fillStyle = 'rgba(188,110,118,.16)';
+    g.beginPath(); g.arc(-5.6,-4.5,1.3,0,Math.PI*2); g.fill();
+    g.beginPath(); g.arc(5.6,-4.5,1.3,0,Math.PI*2); g.fill();
+
+    if(cfg.mug){
+      g.fillStyle = '#8d6b45';
+      rr(g, 10, 3, 6, 8, 2); g.fill();
+      g.strokeStyle = '#c9b08a'; g.lineWidth = 1.2;
+      g.beginPath(); g.arc(16, 7, 2.2, -Math.PI/2, Math.PI/2); g.stroke();
+    }
+    g.restore();
+    return c;
+  }
+
+  const characterSheet = createCharacterSheet();
+  const npcSprites = createNpcSprites();
+
+  function makeForestMap(){
+    const map = {
+      id:'forest',
+      name:'Поляна',
+      width:2200,
+      height:2200,
+      background: document.createElement('canvas'),
+      collisionZones: [],
+      entryPoints: {
+        start:{ x:1120, y:1440 },
+        toTavern:{ x:1562, y:1188 },
+        fromTavern:{ x:1562, y:1188 },
+        kickedFromTavern:{ x:1668, y:1264 }
+      },
+      doors:[
+        { x:1515, y:1178, width:74, height:62, targetMap:'tavern', spawnPoint:'fromForest', label:'Войти' }
+      ],
+      decor: [],
+      npcs: [
+        {
+          id:'street_mocker',
+          name:'Зевака',
+          spriteKey:'mocker',
+          x:1628, y:1220,
+          width:56, height:56,
+          dialogueId:null,
+          isStatic:true
+        }
+      ],
+      overlay:'forest'
+    };
+    map.background.width = map.width;
+    map.background.height = map.height;
+    const g = map.background.getContext('2d');
+
+    const sky = g.createLinearGradient(0,0,0,map.height);
+    sky.addColorStop(0,'#7eb3cb');
+    sky.addColorStop(0.18,'#98cbd9');
+    sky.addColorStop(0.181,'#4b8744');
+    sky.addColorStop(1,'#386a31');
+    g.fillStyle = sky;
+    g.fillRect(0,0,map.width,map.height);
+
+    const meadow = g.createLinearGradient(0,0,0,map.height);
+    meadow.addColorStop(0,'#4d8c45');
+    meadow.addColorStop(0.45,'#447f3c');
+    meadow.addColorStop(1,'#386a31');
+    g.fillStyle = meadow;
+    g.fillRect(0,0,map.width,map.height);
+
+    for(let i=0;i<15000;i++){
+      const x = rnd(0, map.width), y = rnd(0, map.height);
+      const h = rnd(4,12), sway = rnd(-2,2);
+      g.strokeStyle = rand() > .75 ? 'rgba(102,164,84,.32)' : 'rgba(38,90,29,.34)';
+      g.lineWidth = rand() > .85 ? 1.5 : 1;
+      g.beginPath(); g.moveTo(x,y); g.lineTo(x+sway,y-h); g.stroke();
+    }
+    const petals = ['#dce7a5','#f4d6d8','#f0f5ef','#d1b5f4','#ffd27b'];
+    for(let i=0;i<1400;i++){
+      const x = rnd(0, map.width), y = rnd(0, map.height);
+      g.fillStyle = petals[(rand()*petals.length)|0];
+      g.fillRect(x,y,rand()>.65?2:1,rand()>.65?2:1);
+    }
+
+    const pathPoints = [
+      {x: map.width*0.08, y: map.height*0.83},
+      {x: map.width*0.28, y: map.height*0.68},
+      {x: map.width*0.44, y: map.height*0.60},
+      {x: map.width*0.60, y: map.height*0.54},
+      {x: map.width*0.75, y: map.height*0.46},
+      {x: map.width*0.92, y: map.height*0.31}
+    ];
+    for(let i=0;i<pathPoints.length-1;i++){
+      const a = pathPoints[i], b = pathPoints[i+1];
+      const steps = 140;
+      for(let s=0;s<=steps;s++){
+        const t = s/steps;
+        const x = lerp(a.x,b.x,t) + Math.sin((i+t)*4.2)*12;
+        const y = lerp(a.y,b.y,t);
+        const r = lerp(54,34,(i+t)/(pathPoints.length-1));
+        g.fillStyle = 'rgba(132,109,78,.12)';
+        g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill();
+        g.fillStyle = 'rgba(169,146,107,.09)';
+        g.beginPath(); g.arc(x+6,y-2,r*.68,0,Math.PI*2); g.fill();
+      }
+    }
+
+    for(let i=0;i<70;i++){
+      const x = rnd(120, map.width-120), y = rnd(120, map.height-120), r = rnd(50,130);
+      const grad = g.createRadialGradient(x,y,0,x,y,r);
+      grad.addColorStop(0,'rgba(246,241,170,.06)');
+      grad.addColorStop(1,'rgba(246,241,170,0)');
+      g.fillStyle = grad;
+      g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill();
+    }
+
+    function addCircle(x, y, r){ map.collisionZones.push({ type:'circle', x, y, r }); }
+    function addRect(x, y, width, height){ map.collisionZones.push({ type:'rect', x, y, width, height }); }
+    function addDecor(kind, x, y, s, drawYOffset, opts={}){
+      map.decor.push({ kind, x, y, s, drawY: y + drawYOffset*s, ...opts });
+    }
+
+    const borderTrees = [];
+    for(let x=40; x<map.width; x+= rnd(56,92)){
+      borderTrees.push({x, y:rnd(58,124), s:rnd(1.05,1.5)});
+      if(rand()>.18) borderTrees.push({x:x+rnd(-20,20), y:map.height-rnd(76,124), s:rnd(1.05,1.56)});
+    }
+    for(let y=160; y<map.height-160; y+= rnd(64,110)){
+      if(rand()>.35) borderTrees.push({x:rnd(58,130), y, s:rnd(1.0,1.45)});
+      if(rand()>.65) borderTrees.push({x:map.width-rnd(58,118), y, s:rnd(1.0,1.45)});
+    }
+    borderTrees.forEach(t => {
+      addDecor('tree', t.x, t.y, t.s, 24);
+      addCircle(t.x, t.y + 12*t.s, 26*t.s);
+    });
+
+    [
+      {x:520,y:520,s:1.22}, {x:1490,y:530,s:1.28}, {x:1760,y:1350,s:1.22},
+      {x:880,y:1730,s:1.3}, {x:510,y:1280,s:1.18}, {x:1335,y:1545,s:1.35}
+    ].forEach(t=>{
+      addDecor('tree', t.x, t.y, t.s, 24);
+      addCircle(t.x, t.y+14*t.s, 28*t.s);
+    });
+
+    addDecor('rock', 1210, 955, 1.6, 22); addCircle(1210, 968, 52);
+    addDecor('stump', 840, 1148, 1.45, 12); addCircle(840, 1155, 26);
+    addDecor('bush', 1020, 722, 1.65, 14); addCircle(1020, 733, 34);
+    for(let i=0;i<9;i++){
+      const bx = rnd(250, map.width-250), by = rnd(250, map.height-250), s = rnd(.85,1.15);
+      if(Math.hypot(bx-map.width/2, by-map.height/2) < 240) continue;
+      if(bx > 1330 && bx < 1710 && by > 880 && by < 1290) continue;
+      addDecor('bush', bx, by, s, 14); addCircle(bx, by+8*s, 26*s);
+    }
+
+    addDecor('tavern', 1555, 1056, 1.36, 102, { sign:'Кружка и Кость' });
+    addRect(1416, 1048, 278, 126);
+    addRect(1416, 1174, 84, 44);
+    addRect(1608, 1174, 86, 44);
+
+    const vign = g.createRadialGradient(map.width/2, map.height/2, map.width*0.18, map.width/2, map.height/2, map.width*0.68);
+    vign.addColorStop(0, 'rgba(0,0,0,0)');
+    vign.addColorStop(1, 'rgba(12,18,10,.24)');
+    g.fillStyle = vign;
+    g.fillRect(0,0,map.width,map.height);
+    return map;
+  }
+
+  function makeTavernMap(){
+    const map = {
+      id:'tavern',
+      name:'Таверна',
+      width:1280,
+      height:900,
+      background: document.createElement('canvas'),
+      collisionZones: [],
+      entryPoints: {
+        fromForest:{ x:162, y:724 },
+        inside:{ x:300, y:710 }
+      },
+      doors:[
+        { x:112, y:698, width:92, height:86, targetMap:'forest', spawnPoint:'fromTavern', label:'Выйти' }
+      ],
+      decor: [],
+      npcs: [
+        {
+          id:'barman',
+          name:'Трактирщик Хромой Джо',
+          spriteKey:'barman',
+          x:1032, y:210,
+          width:56, height:56,
+          dialogueId:'barman_dialogue',
+          isStatic:true,
+          interactRadius:168
+        },
+        {
+          id:'trader',
+          name:'Подозрительный тип',
+          spriteKey:'trader',
+          x:852, y:286,
+          width:56, height:56,
+          dialogueId:'trader_dialogue',
+          isStatic:true,
+          interactRadius:96
+        },
+        {
+          id:'drunk',
+          name:'Пьяница Склизкий Палец',
+          spriteKey:'drunk',
+          x:700, y:516,
+          width:56, height:56,
+          dialogueId:'drunk_dialogue',
+          isStatic:true,
+          interactRadius:98
+        }
+      ],
+      overlay:'tavern'
+    };
+    map.background.width = map.width;
+    map.background.height = map.height;
+    const g = map.background.getContext('2d');
+
+    g.fillStyle = '#4a311c';
+    g.fillRect(0,0,map.width,map.height);
+    for(let y=0;y<map.height;y+=24){
+      g.fillStyle = y % 48 === 0 ? '#6b4527' : '#734b2b';
+      g.fillRect(0,y,map.width,24);
+      g.fillStyle = 'rgba(255,255,255,.025)';
+      g.fillRect(0,y+2,map.width,2);
+      g.fillStyle = 'rgba(0,0,0,.05)';
+      g.fillRect(0,y+22,map.width,2);
+    }
+
+    g.fillStyle = '#3a2416';
+    g.fillRect(0,0,map.width,112);
+    g.fillRect(0,map.height-96,map.width,96);
+    g.fillStyle = '#5a3720';
+    g.fillRect(0,110,map.width,10);
+
+    const carpet = g.createLinearGradient(360,0,920,0);
+    carpet.addColorStop(0,'rgba(128,45,31,.85)');
+    carpet.addColorStop(0.5,'rgba(158,60,36,.86)');
+    carpet.addColorStop(1,'rgba(128,45,31,.85)');
+    g.fillStyle = carpet;
+    rr(g, 350, 250, 540, 400, 14); g.fill();
+    g.strokeStyle = 'rgba(229,187,110,.25)';
+    g.lineWidth = 6;
+    g.strokeRect(368, 268, 504, 364);
+
+    for(let i=0;i<20;i++){
+      const x = 60 + i*60 + rnd(-10,10);
+      const y = 90 + rnd(-6,6);
+      const glow = g.createRadialGradient(x,y,2,x,y,65);
+      glow.addColorStop(0,'rgba(255,214,134,.28)');
+      glow.addColorStop(1,'rgba(255,214,134,0)');
+      g.fillStyle = glow;
+      g.beginPath(); g.arc(x,y,65,0,Math.PI*2); g.fill();
+    }
+
+    function addCircle(x, y, r){ map.collisionZones.push({ type:'circle', x, y, r }); }
+    function addRect(x, y, width, height){ map.collisionZones.push({ type:'rect', x, y, width, height }); }
+    function addDecor(kind, x, y, s, drawYOffset, opts={}){
+      map.decor.push({ kind, x, y, s, drawY: y + drawYOffset, ...opts });
+    }
+
+    addDecor('counter', 1030, 258, 1, 80, { w:360, h:86 });
+    addRect(850, 214, 370, 108);
+
+    addDecor('fireplace', 1038, 518, 1.24, 30); addRect(990, 470, 100, 86);
+    addDecor('barrel', 1160, 300, 1.1, 18); addCircle(1160, 308, 16);
+    addDecor('barrel', 1210, 306, 1.0, 18); addCircle(1210, 314, 15);
+    addDecor('trophy', 1038, 156, 1, 0);
+
+    const tables = [
+      {x:470,y:350,s:1.18}, {x:700,y:520,s:1.2}, {x:470,y:620,s:1.16}, {x:785,y:338,s:1.05}
+    ];
+    tables.forEach(t=>{
+      addDecor('table', t.x, t.y, t.s, 22*t.s);
+      addCircle(t.x, t.y+8*t.s, 26*t.s);
+    });
+
+    addDecor('chair', 430, 316, 1.0, 18, { facing:'left' }); addCircle(430, 322, 12);
+    addDecor('chair', 510, 315, 1.0, 18, { facing:'right' }); addCircle(510, 322, 12);
+    addDecor('chair', 470, 385, 1.0, 18, { facing:'up' }); addCircle(470, 393, 12);
+
+    addDecor('chair', 661, 488, 1.0, 18, { facing:'left' }); addCircle(661, 495, 12);
+    addDecor('chair', 741, 488, 1.0, 18, { facing:'right' }); addCircle(741, 495, 12);
+    addDecor('chair', 700, 560, 1.0, 18, { facing:'up' }); addCircle(700, 567, 12);
+
+    addDecor('chair', 430, 586, 1.0, 18, { facing:'left' }); addCircle(430, 593, 12);
+    addDecor('chair', 510, 585, 1.0, 18, { facing:'right' }); addCircle(510, 593, 12);
+    addDecor('chair', 470, 656, 1.0, 18, { facing:'up' }); addCircle(470, 664, 12);
+
+    addDecor('chair', 748, 308, 1.0, 18, { facing:'left' }); addCircle(748, 315, 12);
+    addDecor('chair', 822, 308, 1.0, 18, { facing:'right' }); addCircle(822, 315, 12);
+
+    addRect(0, 0, map.width, 60);
+    addRect(0, 0, 44, map.height);
+    addRect(0, map.height-44, map.width, 44);
+    addRect(map.width-44, 0, 44, map.height);
+
+    const candleGlow = g.createRadialGradient(1040, 510, 10, 1040, 510, 160);
+    candleGlow.addColorStop(0,'rgba(255,205,135,.25)');
+    candleGlow.addColorStop(1,'rgba(255,205,135,0)');
+    g.fillStyle = candleGlow;
+    g.beginPath(); g.arc(1040, 510, 160, 0, Math.PI*2); g.fill();
+    return map;
+  }
+
+  const maps = {
+    forest: makeForestMap(),
+    tavern: makeTavernMap()
+  };
+
+  const dialogues = {
+    barman_dialogue: {
+      nodes: [
+        {
+          id:'start',
+          npcLine:'С пустым кошельком и пустой башкой? Чего тебе?',
+          options:[
+            { text:'Мне бы поесть. Работа есть?', nextNode:'job' },
+            { text:'Я ищу кое-кого. Не видел тут подозрительных личностей?', nextNode:'suspicious' },
+            { text:'Пива.', nextNode:'beer' },
+            { text:'Слышь, хромой, налей-ка мне лучшего вина, я заплачу... потом.', nextNode:'kick' }
+          ]
+        },
+        {
+          id:'job',
+          npcLine:'Работа есть всегда. Перетащишь бочки, выметешь рвоту из-под дальнего стола — тогда и похлебка найдется.',
+          options:[
+            { text:'Я еще подумаю.', nextNode:'end' }
+          ]
+        },
+        {
+          id:'suspicious',
+          npcLine:'Подозрительных тут полно. Но тот в темном капюшоне у стойки особенно любит задавать вопросы, на которые лучше не отвечать.',
+          options:[
+            { text:'Понял. Бывай.', nextNode:'end' }
+          ]
+        },
+        {
+          id:'beer',
+          npcLine:'Серебро на стол — кружка в руку. Без денег тут только запах дыма да чужие проблемы.',
+          options:[
+            { text:'Ладно, не сегодня.', nextNode:'end' }
+          ]
+        },
+        {
+          id:'kick',
+          npcLine:'Потом? Потом — это когда рак на горе свистнет. Ты мне не нравишься, парень. Вон отсюда, пока я не позвал вышибалу. И запомни: твоя рожа теперь тут не в почёте.',
+          options:[],
+          autoAction:'kickOut',
+          autoDelay:1200
+        },
+        {
+          id:'end',
+          npcLine:'...',
+          options:[]
+        }
+      ]
+    },
+    drunk_dialogue: {
+      nodes: [
+        {
+          id:'start',
+          npcLine:'Ты кто такой? Не подходи! Ты тоже хочешь украсть мой кошель?',
+          options:[
+            { text:'[Мирно] Успокойся, я просто путник. Ничего мне от тебя не нужно.', nextNode:'calm' },
+            { text:'[Любопытно] Какой кошель? Покажи.', nextNode:'wallet' },
+            { text:'[Агрессивно] Да плевать я хотел на твой кошель, отвали.', nextNode:'rude' },
+            { text:'[Оскорбительно] Ты пьяный кусок дерьма, нищий и вонючий!', nextNode:'kick' }
+          ]
+        },
+        {
+          id:'calm',
+          npcLine:'Все так говорят... а потом кошели пропадают. Ладно. Просто не стой у меня за спиной.',
+          options:[
+            { text:'Как скажешь.', nextNode:'end' }
+          ]
+        },
+        {
+          id:'wallet',
+          npcLine:'Не покажу! Думаешь, я совсем дурак? Сначала покажешь свой, потом посмотрим.',
+          options:[
+            { text:'Да ну тебя.', nextNode:'end' }
+          ]
+        },
+        {
+          id:'rude',
+          npcLine:'Тогда исчезни с моих глаз, пока я не решил, что ты точно вор.',
+          options:[
+            { text:'Уже ухожу.', nextNode:'end' }
+          ]
+        },
+        {
+          id:'kick',
+          npcLine:'Ах ты шавка! Трактирщик! Этот пёс меня оскорбляет! Вышвырни его!',
+          options:[],
+          autoAction:'kickOut',
+          autoDelay:1000
+        },
+        {
+          id:'end',
+          npcLine:'*Склизкий Палец прижимает кружку к груди и подозрительно щурится.*',
+          options:[]
+        }
+      ]
+    },
+    trader_dialogue: {
+      nodes: [
+        {
+          id:'start',
+          npcLine:'Тише. Здесь даже стены умеют слушать. Чего тебе?',
+          options:[
+            { text:'Что продаешь?', nextNode:'wares' },
+            { text:'Слышал слухи о дороге через лес?', nextNode:'rumor' },
+            { text:'Ничего. Уже ухожу.', nextNode:'end' }
+          ]
+        },
+        {
+          id:'wares',
+          npcLine:'Сегодня — ничего. Завтра, может, появятся иголки, травы, пара колец и один очень плохой нож.',
+          options:[
+            { text:'Звучит обнадеживающе.', nextNode:'end' }
+          ]
+        },
+        {
+          id:'rumor',
+          npcLine:'После заката по тропе лучше не ходи. Кто-то оставляет следы босых ног там, где земля сухая и пыли нет уже много лет.',
+          options:[
+            { text:'Запомню.', nextNode:'end' }
+          ]
+        },
+        {
+          id:'end',
+          npcLine:'Подозрительный тип натягивает капюшон ниже и больше ничего не говорит.',
+          options:[]
+        }
+      ]
+    }
+  };
+
+  let currentMapId = 'forest';
+  let currentMap = maps[currentMapId];
+  const player = {
+    x: currentMap.entryPoints.start.x,
+    y: currentMap.entryPoints.start.y,
+    radius: 16,
+    speed: 166,
+    currentDirection: 0,
+    moving: false,
+    animTimer: 0,
+    frame: 0,
+    idlePulse: 0
+  };
+
+  let currentInteraction = null;
+  let nearDoor = null;
+  let interactPressed = false;
+  let isDialogueActive = false;
+  let dialogueState = null;
+  let dialogueAutoTimer = null;
+  let floatingTexts = [];
+
+  function setMap(mapId, spawnPointKey){
+    currentMapId = mapId;
+    currentMap = maps[currentMapId];
+    const spawn = currentMap.entryPoints[spawnPointKey] || currentMap.entryPoints.start || { x: currentMap.width*0.5, y: currentMap.height*0.5 };
+    player.x = spawn.x;
+    player.y = spawn.y;
+    let tries = 0;
+    while(isBlocked(player.x, player.y) && tries < 60){
+      player.y -= 4;
+      player.x += tries % 2 === 0 ? 2 : -2;
+      tries++;
+    }
+    currentInteraction = null;
+    nearDoor = null;
+    mapLabel.textContent = currentMap.name;
+    updateActionButton();
+  }
+
+  function circleRectCollide(cx, cy, cr, rx, ry, rw, rh){
+    const nx = clamp(cx, rx, rx+rw);
+    const ny = clamp(cy, ry, ry+rh);
+    return Math.hypot(cx-nx, cy-ny) < cr;
+  }
+
+  function isBlocked(nx, ny){
+    if(nx < 44 || ny < 44 || nx > currentMap.width-44 || ny > currentMap.height-44) return true;
+    for(const z of currentMap.collisionZones){
+      if(z.type === 'circle'){
+        if(Math.hypot(nx-z.x, ny-z.y) < z.r + player.radius) return true;
+      } else if(z.type === 'rect'){
+        if(circleRectCollide(nx, ny, player.radius, z.x, z.y, z.width, z.height)) return true;
+      }
+    }
+    for(const npc of currentMap.npcs || []){
+      const r = (npc.width || 52) * 0.22;
+      if(Math.hypot(nx - npc.x, ny - npc.y) < player.radius + r) return true;
+    }
+    return false;
+  }
+
+  const keys = Object.create(null);
+  window.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if(e.key === 'e' || e.key === 'E' || e.key === 'Enter') interactPressed = true;
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Enter'].includes(e.key)) e.preventDefault();
+  }, { passive:false });
+  window.addEventListener('keyup', e => {
+    keys[e.key.toLowerCase()] = false;
+  });
+
+  const joy = { x:0, y:0, active:false, pointerId:null };
+  const JOY_CENTER = 69;
+  const JOY_MAX = 40;
+  function updateStick(){
+    stick.style.left = (JOY_CENTER - 32 + joy.x*JOY_MAX) + 'px';
+    stick.style.top  = (JOY_CENTER - 32 + joy.y*JOY_MAX) + 'px';
+  }
+  function resetStick(){
+    joy.x = 0; joy.y = 0; joy.active = false; joy.pointerId = null; updateStick();
+  }
+  updateStick();
+  function handleJoy(clientX, clientY){
+    const r = joystick.getBoundingClientRect();
+    let dx = clientX - (r.left + JOY_CENTER);
+    let dy = clientY - (r.top + JOY_CENTER);
+    const len = Math.hypot(dx,dy) || 1;
+    const clamped = Math.min(JOY_MAX, len);
+    joy.x = dx / len * (clamped / JOY_MAX);
+    joy.y = dy / len * (clamped / JOY_MAX);
+    updateStick();
+  }
+  joystick.addEventListener('pointerdown', e => {
+    joy.active = true;
+    joy.pointerId = e.pointerId;
+    joystick.setPointerCapture(e.pointerId);
+    handleJoy(e.clientX, e.clientY);
+  });
+  joystick.addEventListener('pointermove', e => {
+    if(!joy.active || e.pointerId !== joy.pointerId) return;
+    handleJoy(e.clientX, e.clientY);
+  });
+  joystick.addEventListener('pointerup', e => {
+    if(e.pointerId === joy.pointerId) resetStick();
+  });
+  joystick.addEventListener('pointercancel', resetStick);
+
+  function getInputVector(){
+    let dx = joy.x;
+    let dy = joy.y;
+    if(keys['w'] || keys['arrowup']) dy -= 1;
+    if(keys['s'] || keys['arrowdown']) dy += 1;
+    if(keys['a'] || keys['arrowleft']) dx -= 1;
+    if(keys['d'] || keys['arrowright']) dx += 1;
+    const len = Math.hypot(dx,dy);
+    if(len > 0){ dx /= len; dy /= len; }
+    return { dx, dy, len };
+  }
+
+  function updateDirection(dx, dy){
+    if(Math.abs(dx) > Math.abs(dy)) player.currentDirection = dx < 0 ? 2 : 3;
+    else player.currentDirection = dy < 0 ? 1 : 0;
+  }
+
+  function findNearestNpc(){
+    let best = null;
+    for(const npc of currentMap.npcs || []){
+      if(!npc.dialogueId) continue;
+      const dist = Math.hypot(player.x - npc.x, player.y - npc.y);
+      const reach = npc.interactRadius || 94;
+      if(dist <= reach && (!best || dist < best.dist)){
+        best = { type:'npc', npc, dist, label:'Говорить' };
+      }
+    }
+    return best;
+  }
+
+  function findNearbyDoor(){
+    let best = null;
+    for(const door of currentMap.doors){
+      const cx = door.x + door.width*0.5;
+      const cy = door.y + door.height*0.5;
+      const dist = Math.hypot(player.x - cx, player.y - cy);
+      if(circleRectCollide(player.x, player.y, player.radius + 8, door.x, door.y, door.width, door.height) || dist < 98){
+        if(!best || dist < best.dist) best = { type:'door', door, dist, label:door.label || 'Войти' };
+      }
+    }
+    return best;
+  }
+
+  function updateActionButton(){
+    if(isDialogueActive){
+      actionBtn.classList.remove('show');
+      currentInteraction = null;
+      nearDoor = null;
+      return;
+    }
+    const npcTarget = findNearestNpc();
+    const doorTarget = findNearbyDoor();
+    nearDoor = doorTarget ? doorTarget.door : null;
+    currentInteraction = npcTarget || doorTarget || null;
+    if(currentInteraction){
+      actionBtn.textContent = currentInteraction.label;
+      actionBtn.classList.add('show');
+    } else {
+      actionBtn.classList.remove('show');
+    }
+  }
+
+  function getDialogueNode(def, nodeId){
+    return def.nodes.find(n => n.id === nodeId) || null;
+  }
+
+  function closeDialogue(){
+    isDialogueActive = false;
+    dialogueState = null;
+    dialoguePanel.classList.remove('show');
+    dialogueOptionsEl.innerHTML = '';
+    if(dialogueAutoTimer){
+      clearTimeout(dialogueAutoTimer);
+      dialogueAutoTimer = null;
+    }
+    updateActionButton();
+  }
+
+  function triggerKickOut(){
+    closeDialogue();
+    setMap('forest', 'kickedFromTavern');
+    showFloatingText('street_mocker', 'Кусок дерьма!');
+  }
+
+  function openDialogue(npc){
+    const def = dialogues[npc.dialogueId];
+    if(!def) return;
+    isDialogueActive = true;
+    currentInteraction = null;
+    actionBtn.classList.remove('show');
+    dialogueState = { npc, def, nodeId:'start' };
+    dialoguePanel.classList.add('show');
+    renderDialogueNode('start');
+  }
+
+  function renderDialogueNode(nodeId){
+    if(!dialogueState) return;
+    if(dialogueAutoTimer){
+      clearTimeout(dialogueAutoTimer);
+      dialogueAutoTimer = null;
+    }
+    dialogueState.nodeId = nodeId;
+    const node = getDialogueNode(dialogueState.def, nodeId);
+    if(!node){ closeDialogue(); return; }
+    dialogueNameEl.textContent = dialogueState.npc.name;
+    dialogueTextEl.textContent = node.npcLine;
+    dialogueOptionsEl.innerHTML = '';
+
+    if(node.autoAction === 'kickOut'){
+      dialogueAutoTimer = setTimeout(() => triggerKickOut(), node.autoDelay || 1000);
+      return;
+    }
+
+    const opts = node.options || [];
+    if(opts.length === 0){
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dlgOpt';
+      btn.textContent = 'Уйти';
+      btn.addEventListener('click', closeDialogue);
+      dialogueOptionsEl.appendChild(btn);
+      return;
+    }
+
+    for(const opt of opts){
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dlgOpt';
+      btn.textContent = opt.text;
+      btn.addEventListener('click', () => {
+        if(opt.nextNode) renderDialogueNode(opt.nextNode);
+        else if(opt.action === 'kickOut') triggerKickOut();
+        else closeDialogue();
+      });
+      dialogueOptionsEl.appendChild(btn);
+    }
+  }
+
+  function handleInteract(){
+    if(isDialogueActive) return;
+    if(!currentInteraction) return;
+    if(currentInteraction.type === 'door'){
+      setMap(currentInteraction.door.targetMap, currentInteraction.door.spawnPoint);
+    } else if(currentInteraction.type === 'npc'){
+      openDialogue(currentInteraction.npc);
+    }
+  }
+  actionBtn.addEventListener('click', handleInteract);
+
+  function showFloatingText(npcId, text, duration=3000){
+    floatingTexts.push({
+      mapId: currentMapId,
+      npcId,
+      text,
+      start: performance.now(),
+      duration
+    });
+  }
+
+  function getNpcById(map, npcId){
+    return (map.npcs || []).find(n => n.id === npcId) || null;
+  }
+
+  let last = performance.now();
+  function loop(now){
+    const dt = Math.min(0.033, (now-last)/1000);
+    last = now;
+    update(dt);
+    render(now/1000, now);
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt){
+    player.idlePulse += dt;
+
+    if(isDialogueActive){
+      player.moving = false;
+      player.frame = 0;
+      interactPressed = false;
+      return;
+    }
+
+    const { dx, dy, len } = getInputVector();
+    if(len > 0){
+      player.moving = true;
+      updateDirection(dx, dy);
+      player.animTimer += dt * 8.5;
+      const animCycle = [0,1,2,3];
+      player.frame = animCycle[Math.floor(player.animTimer) % animCycle.length];
+
+      const moveX = dx * player.speed * dt;
+      const moveY = dy * player.speed * dt;
+      const nx = player.x + moveX;
+      const ny = player.y + moveY;
+      if(!isBlocked(nx, player.y)) player.x = nx;
+      if(!isBlocked(player.x, ny)) player.y = ny;
+    } else {
+      player.moving = false;
+      player.frame = 0;
+    }
+
+    updateActionButton();
+    if(currentInteraction && interactPressed) handleInteract();
+    interactPressed = false;
+  }
+
+  function drawDecorItem(g, item, camX, camY){
+    const x = item.x - camX;
+    const y = item.y - camY;
+    switch(item.kind){
+      case 'tree': drawTree(g, x, y, item.s); break;
+      case 'bush': drawBush(g, x, y, item.s, true); break;
+      case 'rock': drawRock(g, x, y, item.s); break;
+      case 'stump': drawStump(g, x, y, item.s); break;
+      case 'tavern': drawTavernExterior(g, x, y, item.s); break;
+      case 'counter': drawBarCounter(g, x, y, item.w, item.h); break;
+      case 'table': drawTable(g, x, y, item.s); break;
+      case 'chair': drawChair(g, x, y, item.s, item.facing); break;
+      case 'fireplace': drawFireplace(g, x, y, item.s); break;
+      case 'barrel': drawBarrel(g, x, y, item.s); break;
+      case 'trophy': drawTrophy(g, x, y, item.s); break;
+    }
+  }
+
+  function drawNpc(npc, camX, camY){
+    const sprite = npcSprites[npc.spriteKey] || npcSprites.mocker;
+    const w = npc.width || 56;
+    const h = npc.height || 56;
+    const x = npc.x - camX - w*0.5;
+    const y = npc.y - camY - h*0.78;
+    ctx.drawImage(sprite, x, y, w, h);
+  }
+
+  function drawPlayer(camX, camY){
+    const screenX = player.x - camX;
+    const screenY = player.y - camY;
+    const sx = player.frame * CELL;
+    const sy = player.currentDirection * CELL;
+    const idleBob = player.moving ? 0 : Math.sin(player.idlePulse * 2.7) * 0.8;
+    ctx.drawImage(characterSheet, sx, sy, CELL, CELL, screenX - 48, screenY - 69 + idleBob, 96, 96);
+  }
+
+  function renderFloatingTexts(camX, camY, nowMs){
+    floatingTexts = floatingTexts.filter(msg => (nowMs - msg.start) < msg.duration);
+    for(const msg of floatingTexts){
+      if(msg.mapId !== currentMapId) continue;
+      const npc = getNpcById(currentMap, msg.npcId);
+      if(!npc) continue;
+      const progress = (nowMs - msg.start) / msg.duration;
+      const alpha = progress < 0.15 ? progress / 0.15 : 1 - progress;
+      const x = npc.x - camX;
+      const y = npc.y - camY - 54 - progress * 20;
+      if(x < -120 || x > vw + 120 || y < -120 || y > vh + 80) continue;
+      ctx.save();
+      ctx.globalAlpha = clamp(alpha, 0, 1);
+      ctx.font = 'bold 14px system-ui, sans-serif';
+      const textWidth = ctx.measureText(msg.text).width;
+      const padX = 10;
+      const bw = textWidth + padX*2;
+      const bh = 28;
+      const bx = x - bw*0.5;
+      const by = y - bh;
+      ctx.fillStyle = 'rgba(18,14,12,.82)';
+      rr(ctx, bx, by, bw, bh, 10); ctx.fill();
+      ctx.strokeStyle = 'rgba(242,216,162,.22)';
+      ctx.lineWidth = 1;
+      rr(ctx, bx, by, bw, bh, 10); ctx.stroke();
+      ctx.fillStyle = '#f3e4bb';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(msg.text, x, by + bh*0.55);
+      ctx.restore();
+    }
+  }
+
+  function render(t, nowMs){
+    ctx.clearRect(0,0,vw,vh);
+    const camX = clamp(player.x - vw/2, 0, Math.max(0, currentMap.width - vw));
+    const camY = clamp(player.y - vh/2, 0, Math.max(0, currentMap.height - vh));
+
+    ctx.drawImage(currentMap.background, camX, camY, vw, vh, 0, 0, vw, vh);
+
+    if(currentMap.overlay === 'forest'){
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      for(let i=0;i<4;i++){
+        const lx = (vw*0.18 + i*vw*0.18 + Math.sin(t*0.18+i)*24);
+        const ly = -120;
+        const grad = ctx.createLinearGradient(lx,ly,lx+180,vh*0.55);
+        grad.addColorStop(0,'rgba(255,247,194,.11)');
+        grad.addColorStop(1,'rgba(255,247,194,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(lx,ly); ctx.lineTo(lx+24,ly); ctx.lineTo(lx+194,vh*0.62); ctx.lineTo(lx+86,vh*0.62); ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    } else {
+      const glow = ctx.createRadialGradient(vw*0.75, vh*0.28, 10, vw*0.75, vh*0.28, Math.max(vw,vh)*0.45);
+      glow.addColorStop(0,'rgba(255,205,135,.12)');
+      glow.addColorStop(1,'rgba(255,205,135,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0,0,vw,vh);
+    }
+
+    const entities = [];
+    const margin = 170;
+    for(const d of currentMap.decor){
+      if(d.x < camX-margin || d.y < camY-margin || d.x > camX+vw+margin || d.y > camY+vh+margin) continue;
+      entities.push({ kind:'decor', drawY:d.drawY, ref:d });
+    }
+    for(const npc of currentMap.npcs || []){
+      if(npc.x < camX-margin || npc.y < camY-margin || npc.x > camX+vw+margin || npc.y > camY+vh+margin) continue;
+      entities.push({ kind:'npc', drawY:npc.y + 18, ref:npc });
+    }
+    entities.push({ kind:'player', drawY: player.y + 22, ref: player });
+    entities.sort((a,b) => a.drawY - b.drawY);
+
+    for(const e of entities){
+      if(e.kind === 'player') drawPlayer(camX, camY);
+      else if(e.kind === 'npc') drawNpc(e.ref, camX, camY);
+      else drawDecorItem(ctx, e.ref, camX, camY);
+    }
+
+    if(nearDoor && !isDialogueActive){
+      ctx.save();
+      const d = nearDoor;
+      const x = d.x - camX, y = d.y - camY;
+      ctx.strokeStyle = 'rgba(255,228,166,.35)';
+      ctx.lineWidth = 2;
+      rr(ctx, x, y, d.width, d.height, 10); ctx.stroke();
+      ctx.restore();
+    }
+
+    renderFloatingTexts(camX, camY, nowMs);
+
+    const vg = ctx.createRadialGradient(vw/2, vh/2, Math.min(vw,vh)*0.2, vw/2, vh/2, Math.max(vw,vh)*0.78);
+    vg.addColorStop(0,'rgba(0,0,0,0)');
+    vg.addColorStop(1, currentMap.overlay === 'tavern' ? 'rgba(0,0,0,.29)' : 'rgba(0,0,0,.19)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0,0,vw,vh);
+  }
+
+  setMap('forest', 'start');
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
